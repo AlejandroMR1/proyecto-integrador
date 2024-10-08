@@ -1,0 +1,59 @@
+body{
+    margin: 0;
+}
+
+.login-background {
+    background-image: url('/public/Technology.jpg');
+    background-size:cover; 
+}
+
+.infinity {
+    background-image: url("/Infinity.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100vh;
+    background-position: center;
+  }
+  
+
+.sectionLogin{
+    
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+    
+}
+
+.sectionLogin form{
+    box-sizing: border-box;
+    backdrop-filter: blur(2px);
+    background-color: rgba(27, 27, 46, 0.5);
+    height: 500px;
+    width: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+    color: black;
+}
+
+.sectionLogin form section{
+width: 60%;
+height: 10%;
+display: flex;
+justify-content:space-between;
+align-items: center;
+}
+
+.sectionLogin form section input{
+    
+    width: 200px;
+    height: 30px;
+    outline: none;
+
+}

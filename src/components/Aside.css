@@ -1,0 +1,22 @@
+.home-sidebar{
+    background-color: #212c32;
+    position:absolute;
+    width: 235px;
+    height: 200vh;
+    text-align: center;
+    
+}
+
+.home-sidebar a {
+    color: white; 
+    text-decoration: none; 
+    margin: 20px;
+    display: block;
+    font-size: 20px;
+}
+
+.home-sidebar a:hover {
+    text-decoration: none; 
+    font-size: 1.32rem;
+    
+}
