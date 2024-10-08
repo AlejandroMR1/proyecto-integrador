@@ -3,6 +3,8 @@ import "./Employees.css"
 import { useTable, useGlobalFilter, useAsyncDebounce } from 'react-table';
 import 'regenerator-runtime/runtime';
 import { users } from '../../data/dataUsers';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 // Componente para el buscador (filtro global)
 function EmployeesFilter({ preGlobalFilteredRows, globalFilter, setGlobalFilter }) {
@@ -101,6 +103,7 @@ const Employees = () => {
 
   return (
     <div>
+      <Header/>
       <h1>Tabla de Empleados</h1>
 
       {/* Componente de filtro (buscador) */}

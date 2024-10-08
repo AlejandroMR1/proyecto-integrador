@@ -1,8 +1,8 @@
 .home-sidebar{
     background-color: #212c32;
-    position:absolute;
+    position:relative;
     width: 235px;
-    height: 200vh;
+    height: 90vh;
     text-align: center;
     
 }

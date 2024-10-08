@@ -10,6 +10,10 @@ const Aside = () => {
 
     <aside className='home-sidebar'>
 
+        <br />
+        <br />
+        <br />
+        <br />
         <Link to="/home">Página Principal</Link>
         <br />
         <Link to="/attendance">Asistencia</Link>
