@@ -57,3 +57,7 @@ align-items: center;
     outline: none;
 
 }
+
+.sectionLogin h1{
+    color: black;
+}
