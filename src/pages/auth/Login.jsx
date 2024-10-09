@@ -72,7 +72,8 @@ const Login = () => {
                 <label htmlFor="">Contraseña</label>
                 <input value={getPassword} onChange={(evento) => setPassword(evento.target.value)} type="password" />
             </section>
-            <button onClick={login} type='button'>Iniciar Sesión</button>
+            <br />
+            <button onClick={login} type='button' className='login-button'>Iniciar Sesión</button>
         </form>
 
     </section>
