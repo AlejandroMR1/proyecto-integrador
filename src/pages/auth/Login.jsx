@@ -58,9 +58,8 @@ const Login = () => {
 
         <form>
 
-            <section className='infinity'></section>
+            <img src="../../public/Effitrack.jpg" alt="Effitrack" className='effitrack'></img>
 
-        <h1>Nuevas Tecnologías</h1>
         <h2>Bienvenido</h2>
         
             <section>
