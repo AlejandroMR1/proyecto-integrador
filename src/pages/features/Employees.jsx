@@ -4,7 +4,6 @@ import { useTable, useGlobalFilter, useAsyncDebounce } from 'react-table';
 import 'regenerator-runtime/runtime';
 import { users } from '../../data/dataUsers';
 import Header from '../../components/Header';
-import Footer from '../../components/Footer';
 
 // Componente para el buscador (filtro global)
 function EmployeesFilter({ preGlobalFilteredRows, globalFilter, setGlobalFilter }) {
@@ -38,6 +37,10 @@ const Employees = () => {
   const columns = useMemo(
     () => [
       {
+        Header: 'Tipo de ID',
+        accessor: 'id_type',
+      },
+      {
         Header: 'ID',
         accessor: 'id',
       },
@@ -50,25 +53,38 @@ const Employees = () => {
         accessor: 'last_name',
       },
       {
-        Header: 'Teléfono',
-        accessor: 'phone',
+        Header: 'Fecha de Nacimiento',
+        accessor: 'birthdate',
+      },
+      {
+        Header: 'Edad',
+        accessor: 'age',
       },
       {
         Header: 'Ciudad',
         accessor: 'city',
       },
       {
-        Header: 'Género',
-        accessor: 'gender',
+        Header: 'Email',
+        accessor: 'email',
+      },
+      {
+        Header: 'Teléfono',
+        accessor: 'phone',
+      },
+      {
+        Header: 'Fecha de Contratación',
+        accessor: 'hiring_date',
+      },
+      {
+        Header: 'Cargo',
+        accessor: 'post',
       },
       {
         Header: 'Departamento',
         accessor: 'department',
       },
-      {
-        Header: 'Email',
-        accessor: 'email',
-      }
+
     ],
     []
   );
@@ -76,14 +92,19 @@ const Employees = () => {
   // Datos de ejemplo
   const data = useMemo(
     () => users.map(user => ({
+      id_type: `${user.id_type}`,
       id: `${user.id}`,
       name: `${user.name} `,
       last_name: `${user.last_name}`, 
-      phone: `${user.phone}`,
+      birthdate: `${user.birthdate}`,
+      age: `${user.age}`,
       city: `${user.city}`,
-      gender: user.gender,
+      email: `${user.email}`,
+      phone: `${user.phone}`,
+      hiring_date: `${user.hiring_date}`,
+      post: `${user.post}`,
       department: user.department,
-      email: user.email
+
     })),
     [users]
   );

@@ -6,6 +6,8 @@ import Login from "./pages/auth/Login"
 import Home from "./pages/features/Home"
 import {createBrowserRouter, RouterProvider} from "react-router-dom"
 import Employees from './pages/features/Employees'
+import Attendance from './pages/features/Attendance'
+
 
 
 let router = createBrowserRouter([
@@ -27,6 +29,10 @@ let router = createBrowserRouter([
     element: <Employees/>
   },
 
+  {
+    path: "/attendance",
+    element: <Attendance/>
+  }
 ])
 
 createRoot(document.getElementById('root')).render(

@@ -9,7 +9,6 @@
     border-radius: 8px;
 }
 
-/* Estilos para la tabla */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -19,13 +18,15 @@ th, td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    text-align: center;
 }
 
 /* Encabezados de la tabla */
 th {
-    background-color: #2073aa;
+    background-color: #004646;
     color: white;
     font-weight: bold;
+    text-align: center;
 }
 
 /* Filas de la tabla */
@@ -36,12 +37,14 @@ tr:nth-child(even) {
 /* Hover sobre filas */
 tr:hover {
     background-color: #ddd;
+    
 }
 
 /* Buscador */
 .employees-filter {
     margin-bottom: 20px;
     display: block;
+    
 }
 
 .employees-filter input {
@@ -58,3 +61,5 @@ h1 {
     color: #333;
     margin-bottom: 20px;
 }
+
+
