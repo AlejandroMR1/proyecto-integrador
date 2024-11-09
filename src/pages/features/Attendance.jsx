@@ -53,7 +53,7 @@ function AttendanceTable() {
                         <th>Apellido</th>
                         <th>Email</th>
                         <th>Teléfono</th>
-                        <th>Puesto</th>
+                        <th>Cargo</th>
                         <th>Departamento</th>
                         <th>Fecha</th>
                         <th>Asistencia</th>

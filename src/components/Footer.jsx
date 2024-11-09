@@ -4,7 +4,7 @@ import "./Footer.css"
 const Footer = () => {
     return (
         <footer className='footer'>
-            <h1>Nuevas Tecnologías</h1>
+            <h1>Effitrack</h1>
             <br />
             <h1>©Copyright:</h1>
             <h1>Todos los derechos reservados</h1>
