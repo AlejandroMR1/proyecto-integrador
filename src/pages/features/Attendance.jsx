@@ -1,93 +1,296 @@
-import React, { useState } from 'react';
-import "./Attendance.css"
-import Header from "../../components/Header"
-import { users } from '../../data/dataUsers';
-import { IoCheckmarkCircleSharp } from "react-icons/io5";
-import { TiTimes } from "react-icons/ti";
-import { MdOutlineWatchLater } from "react-icons/md";
-
-function AttendanceTable() {
-    const [attendanceData, setAttendanceData] = useState(
-        users.map(user => ({
-            id_type: user.id_type,
-            id: user.id,
-            name: user.name,
-            last_name: user.last_name,
-            email: user.email,
-            phone: user.phone,
-            post: user.post,
-            department: user.department,
-            date: new Date().toLocaleDateString('es-CO'),
-            attendance: ""
-        }))
-
-    );
-
-    const handleAttendanceChange = (index, value) => {
-        const newData = [...attendanceData];
-        newData[index].attendance = value;
-        setAttendanceData(newData);
-    };
-
-    const renderAttendanceIcon = (value) => {
-        switch (value) {
-            case "presente":
-                return <IoCheckmarkCircleSharp className="attendance-icon" style={{ color: 'green' }} />;
-            case "ausente":
-                return <TiTimes className="attendance-icon" style={{ color: 'red' }} />;
-            case "tardanza":
-                return <MdOutlineWatchLater className='attendance-icon' style={{ color: "blue" }} />;
-            default:
-                return "-";
-        }
-    };
+import React, { useState, useMemo, useEffect } from 'react';
+import "./Employees.css";
+import { useTable, useGlobalFilter, useAsyncDebounce } from 'react-table';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from 'src/pages/features/config.js';
+import Header from '../../components/Header';
 
 
-    return (
-        <div>
-            <Header />
-            <table className='attendance-table'>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Apellido</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Cargo</th>
-                        <th>Departamento</th>
-                        <th>Fecha</th>
-                        <th>Asistencia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {attendanceData.map((row, index) => (
-                        <tr key={row.id}>
-                            <td>{row.name}</td>
-                            <td>{row.last_name}</td>
-                            <td>{row.email}</td>
-                            <td>{row.phone}</td>
-                            <td>{row.post}</td>
-                            <td>{row.department}</td>
-                            <td>{row.date}</td>
-                            <td>
-                                <div className="attendance-select-container">
-                                    <select onChange={(e) => handleAttendanceChange(index, e.target.value)}>
-                                        <option value="">-</option>
-                                        <option value="presente">Presente</option>
-                                        <option value="ausente">Ausente</option>
-                                        <option value="tardanza">Tarde</option>
-                                    </select>
-                                    <span className="attendance-icon">
-                                        {renderAttendanceIcon(row.attendance)} {}
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+// Componente para el buscador (filtro global)
+function EmployeesFilter({ preGlobalFilteredRows, globalFilter, setGlobalFilter }) {
+  const totalEmployees = preGlobalFilteredRows.length;
+  const [value, setValue] = useState(globalFilter);
+
+  const onFilterChange = useAsyncDebounce((value) => {
+    setGlobalFilter(value || undefined);
+  }, 200);
+
+  const handleInputChange = (e) => {
+    setValue(e.target.value);
+    onFilterChange(e.target.value);
+  };
+
+  return (
+    <span className="employees-filter">
+      Buscador global: 
+      <input
+        size={50}
+        value={value || ""}
+        onChange={handleInputChange}
+        placeholder={`${totalEmployees} empleados`}
+      />
+    </span>
+  );
 }
 
-export default AttendanceTable; 
+const Employees = () => {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Función para obtener los empleados de Firebase
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const employeesCol = collection(db, 'employees');
+      const employeeSnapshot = await getDocs(employeesCol);
+      const employeeList = employeeSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setEmployees(employeeList);
+      setError(null);
+    } catch (error) {
+      console.error("Error al obtener empleados:", error);
+      setError("Error al cargar los empleados. Por favor, intenta más tarde.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar empleados cuando el componente se monta
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // Función para agregar un empleado
+  const addEmployee = async (employeeData) => {
+    try {
+      const docRef = await addDoc(collection(db, 'employees'), employeeData);
+      console.log("Empleado agregado con ID: ", docRef.id);
+      await fetchEmployees(); // Actualizar la lista
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error("Error al agregar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Función para actualizar un empleado
+  const updateEmployee = async (id, employeeData) => {
+    try {
+      const employeeDoc = doc(db, 'employees', id);
+      await updateDoc(employeeDoc, employeeData);
+      await fetchEmployees(); // Actualizar la lista
+      return { success: true };
+    } catch (error) {
+      console.error("Error al actualizar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Función para eliminar un empleado
+  const deleteEmployee = async (id) => {
+    try {
+      const employeeDoc = doc(db, 'employees', id);
+      await deleteDoc(employeeDoc);
+      await fetchEmployees(); // Actualizar la lista
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Definir las columnas para la tabla
+  const columns = useMemo(
+    () => [
+      {
+        Header: 'Tipo de ID',
+        accessor: 'id_type',
+      },
+      {
+        Header: 'ID',
+        accessor: 'id',
+      },
+      {
+        Header: 'Nombre(s)',
+        accessor: 'name',
+      },
+      {
+        Header: 'Apellido(s)',
+        accessor: 'last_name',
+      },
+      {
+        Header: 'Fecha de Nacimiento',
+        accessor: 'birthdate',
+      },
+      {
+        Header: 'Edad',
+        accessor: 'age',
+      },
+      {
+        Header: 'Ciudad',
+        accessor: 'city',
+      },
+      {
+        Header: 'Email',
+        accessor: 'email',
+      },
+      {
+        Header: 'Teléfono',
+        accessor: 'phone',
+      },
+      {
+        Header: 'Fecha de Contratación',
+        accessor: 'hiring_date',
+      },
+      {
+        Header: 'Cargo',
+        accessor: 'post',
+      },
+      {
+        Header: 'Departamento',
+        accessor: 'department',
+      },
+      {
+        Header: 'Acciones',
+        accessor: 'actions',
+        Cell: ({ row }) => (
+          <div className="action-buttons">
+            <button
+              onClick={() => handleEdit(row.original)}
+              className="edit-button"
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id)}
+              className="delete-button"
+            >
+              Eliminar
+            </button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
+  // Manejadores para las acciones de editar y eliminar
+  const handleEdit = (employee) => {
+    // Aquí puedes implementar la lógica para editar
+    console.log('Editando empleado:', employee);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este empleado?')) {
+      const result = await deleteEmployee(id);
+      if (result.success) {
+        alert('Empleado eliminado con éxito');
+      } else {
+        alert('Error al eliminar empleado: ' + result.error);
+      }
+    }
+  };
+
+  // Usar los datos de Firebase
+  const data = useMemo(
+    () => employees,
+    [employees]
+  );
+
+  // Configuración de la tabla
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+    preGlobalFilteredRows,
+    setGlobalFilter,
+    state: { globalFilter },
+  } = useTable(
+    {
+      columns,
+      data
+    },
+    useGlobalFilter
+  );
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <p>Cargando empleados...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <p>{error}</p>
+        <button onClick={fetchEmployees}>Reintentar</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="employees-container">
+      <Header/>
+      <h1>Tabla de Empleados</h1>
+
+      <div className="table-controls">
+        <EmployeesFilter
+          preGlobalFilteredRows={preGlobalFilteredRows}
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+        />
+        <button 
+          className="add-employee-button"
+          onClick={() => {/* Implementar lógica para agregar empleado */}}
+        >
+          Agregar Empleado
+        </button>
+      </div>
+
+      <div className="table-container">
+        <table {...getTableProps()} className="employees-table">
+          <thead>
+            {headerGroups.map(headerGroup => (
+              <tr {...headerGroup.getHeaderGroupProps()}>
+                {headerGroup.headers.map(column => (
+                  <th {...column.getHeaderProps()}>
+                    {column.render('Header')}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody {...getTableBodyProps()}>
+            {rows.map(row => {
+              prepareRow(row);
+              return (
+                <tr {...row.getRowProps()}>
+                  {row.cells.map(cell => (
+                    <td {...cell.getCellProps()}>
+                      {cell.render('Cell')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {rows.length === 0 && !loading && (
+        <div className="no-data">
+          No hay empleados para mostrar
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Employees;

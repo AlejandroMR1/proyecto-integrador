@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import "./Employees.css"
+import React, { useState, useMemo, useEffect } from 'react';
+import "./Employees.css";
 import { useTable, useGlobalFilter, useAsyncDebounce } from 'react-table';
-import 'regenerator-runtime/runtime';
-import { users } from '../../data/dataUsers';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from 'src/pages/features/config.js';
 import Header from '../../components/Header';
+import { migrateData } from 'src/pages/features/migrateData.js';
 
 // Componente para el buscador (filtro global)
 function EmployeesFilter({ preGlobalFilteredRows, globalFilter, setGlobalFilter }) {
@@ -33,6 +34,95 @@ function EmployeesFilter({ preGlobalFilteredRows, globalFilter, setGlobalFilter 
 }
 
 const Employees = () => {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  // Función para obtener los empleados de Firebase
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const employeesCol = collection(db, 'employees');
+      const employeeSnapshot = await getDocs(employeesCol);
+      const employeeList = employeeSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setEmployees(employeeList);
+      setError(null);
+    } catch (error) {
+      console.error("Error al obtener empleados:", error);
+      setError("Error al cargar los empleados. Por favor, intenta más tarde.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar empleados cuando el componente se monta
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // Función para manejar la migración de datos
+  const handleDataMigration = async () => {
+    if (window.confirm('¿Estás seguro de que deseas migrar los datos? Esta operación puede tomar varios minutos.')) {
+      try {
+        setIsMigrating(true);
+        const result = await migrateData();
+        if (result.success) {
+          alert(`Migración completada. Se migraron ${result.count} empleados.`);
+          await fetchEmployees(); // Recargar los datos
+        } else {
+          alert('Error en la migración: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error al ejecutar la migración: ' + error.message);
+      } finally {
+        setIsMigrating(false);
+      }
+    }
+  };
+
+  // Función para agregar un empleado
+  const addEmployee = async (employeeData) => {
+    try {
+      const docRef = await addDoc(collection(db, 'employees'), employeeData);
+      console.log("Empleado agregado con ID: ", docRef.id);
+      await fetchEmployees();
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error("Error al agregar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Función para actualizar un empleado
+  const updateEmployee = async (id, employeeData) => {
+    try {
+      const employeeDoc = doc(db, 'employees', id);
+      await updateDoc(employeeDoc, employeeData);
+      await fetchEmployees();
+      return { success: true };
+    } catch (error) {
+      console.error("Error al actualizar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Función para eliminar un empleado
+  const deleteEmployee = async (id) => {
+    try {
+      const employeeDoc = doc(db, 'employees', id);
+      await deleteDoc(employeeDoc);
+      await fetchEmployees();
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar empleado:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Definir las columnas para la tabla
   const columns = useMemo(
     () => [
@@ -84,33 +174,54 @@ const Employees = () => {
         Header: 'Departamento',
         accessor: 'department',
       },
-
+      {
+        Header: 'Acciones',
+        accessor: 'actions',
+        Cell: ({ row }) => (
+          <div className="action-buttons">
+            <button
+              onClick={() => handleEdit(row.original)}
+              className="edit-button"
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id)}
+              className="delete-button"
+            >
+              Eliminar
+            </button>
+          </div>
+        ),
+      },
     ],
     []
   );
 
-  // Datos de ejemplo
+  // Manejadores para las acciones de editar y eliminar
+  const handleEdit = (employee) => {
+    // Aquí implementarás la lógica para editar
+    console.log('Editando empleado:', employee);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este empleado?')) {
+      const result = await deleteEmployee(id);
+      if (result.success) {
+        alert('Empleado eliminado con éxito');
+      } else {
+        alert('Error al eliminar empleado: ' + result.error);
+      }
+    }
+  };
+
+  // Usar los datos de Firebase
   const data = useMemo(
-    () => users.map(user => ({
-      id_type: `${user.id_type}`,
-      id: `${user.id}`,
-      name: `${user.name} `,
-      last_name: `${user.last_name}`, 
-      birthdate: `${user.birthdate}`,
-      age: `${user.age}`,
-      city: `${user.city}`,
-      email: `${user.email}`,
-      phone: `${user.phone}`,
-      hiring_date: `${user.hiring_date}`,
-      post: `${user.post}`,
-      department: user.department,
-
-    })),
-    [users]
+    () => employees,
+    [employees]
   );
-  
 
-  // Usar el hook useTable para definir la estructura de la tabla y aplicar el filtro
+  // Configuración de la tabla
   const {
     getTableProps,
     getTableBodyProps,
@@ -120,44 +231,92 @@ const Employees = () => {
     preGlobalFilteredRows,
     setGlobalFilter,
     state: { globalFilter },
-  } = useTable({ columns, data }, useGlobalFilter);
+  } = useTable(
+    {
+      columns,
+      data
+    },
+    useGlobalFilter
+  );
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <p>Cargando empleados...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <p>{error}</p>
+        <button onClick={fetchEmployees}>Reintentar</button>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="employees-container">
       <Header/>
       <h1>Tabla de Empleados</h1>
 
-      {/* Componente de filtro (buscador) */}
-      <EmployeesFilter
-        preGlobalFilteredRows={preGlobalFilteredRows}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
-      />
+      <div className="table-controls">
+        <EmployeesFilter
+          preGlobalFilteredRows={preGlobalFilteredRows}
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+        />
+        <button 
+          className="add-employee-button"
+          onClick={() => {/* Implementar lógica para agregar empleado */}}
+        >
+          Agregar Empleado
+        </button>
+        <button 
+          className="migrate-data-button"
+          onClick={handleDataMigration}
+          disabled={isMigrating}
+        >
+          {isMigrating ? 'Migrando...' : 'Migrar Datos a Firebase'}
+        </button>
+      </div>
 
-      {/* Renderizado de la tabla */}
-      <table {...getTableProps()}>
-        <thead>
-          {headerGroups.map(headerGroup => (
-            <tr {...headerGroup.getHeaderGroupProps()}>
-              {headerGroup.headers.map(column => (
-                <th {...column.getHeaderProps()}>{column.render('Header')}</th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody {...getTableBodyProps()}>
-          {rows.map(row => {
-            prepareRow(row);
-            return (
-              <tr {...row.getRowProps()}>
-                {row.cells.map(cell => (
-                  <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+      <div className="table-container">
+        <table {...getTableProps()} className="employees-table">
+          <thead>
+            {headerGroups.map(headerGroup => (
+              <tr {...headerGroup.getHeaderGroupProps()}>
+                {headerGroup.headers.map(column => (
+                  <th {...column.getHeaderProps()}>
+                    {column.render('Header')}
+                  </th>
                 ))}
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ))}
+          </thead>
+          <tbody {...getTableBodyProps()}>
+            {rows.map(row => {
+              prepareRow(row);
+              return (
+                <tr {...row.getRowProps()}>
+                  {row.cells.map(cell => (
+                    <td {...cell.getCellProps()}>
+                      {cell.render('Cell')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {rows.length === 0 && !loading && (
+        <div className="no-data">
+          No hay empleados para mostrar
+        </div>
+      )}
     </div>
   );
 };
